@@ -56,17 +56,40 @@ export default function useApplication() {
         }
     };
 
+const getApplicationsByUser = async () => {
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    const authData = JSON.parse(localStorage.getItem('authData') || '{}');
+    const userId = authData?.userId;
+
+    if (!userId) throw new Error('User ID not found.');
+
+    const response = await axios.get(`/api/v1/applications/user/${userId}`);
+    setApplications(response.data.data);
+    return response.data.data;
+  } catch (error: any) {
+    setError(error.response?.data?.message || error.message || 'Failed to retrieve applications');
+    throw error;
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
     const getApplicationsByTIN = async () => {
         setIsLoading(true);
         setError(null);
 
         try {
             const authData = JSON.parse(localStorage.getItem('authData') || '{}');
-            const tin = authData?.companyTIN || authData?.companyTIN;
+            const tin = authData?.id;
+            console.log("the tin is: " + tin);
 
             if (!tin) throw new Error('TIN not found.');
 
-            const response = await axios.post('/api/v1/applications/by-tin', { Tin: tin });
+            const response = await axios.get(`/api/v1/applications/user/${tin}`);
             setApplications(response.data.data);
             return response.data.data;
         } catch (error: any) {
@@ -76,6 +99,33 @@ export default function useApplication() {
             setIsLoading(false);
         }
     };
+
+    const getApplicationsByCompanyId = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+        const authData = JSON.parse(localStorage.getItem('authData') || '{}');
+        const companyId = authData?.companyId || 0; 
+        console.log("The company ID is: " + companyId);
+
+        if (companyId === undefined || companyId === null) {
+        throw new Error('Company ID not found.');
+        }
+         console.log("hitted");
+        const response = await axios.get(`/api/v1/applications/company/${companyId}`);
+        setApplications(response.data.data);
+        console.log("hitted");
+        return response.data.data;
+    } catch (error: any) {
+        setError(error.response?.data?.message || error.message || 'Failed to retrieve applications');
+         console.log("hitted " + error.response?.data?.message || error.message );
+        throw error;
+    } finally {
+        setIsLoading(false);
+    }
+};
+
 
     const getApplicationById = async (id: string) => {
         setIsLoading(true);
@@ -172,5 +222,6 @@ export default function useApplication() {
         getDistricts,
         getUnitOfMeasure,
         getAttachmentTypes,
+        getApplicationsByCompanyId,
     };
 }
