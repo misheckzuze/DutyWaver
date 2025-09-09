@@ -215,31 +215,35 @@ const projectDetailsSchema = Yup.object().shape({
     }));
   };
 
-  const handleSubmit = async (e: React.MouseEvent) => {
+const handleSubmit = async (e: React.MouseEvent) => {
   e.preventDefault();
 
   console.log("Submitting form with userData:", userData);
 
   if (!userData.userId || !userData.tin) {
-    console.error("Missing user data - userId:", userData.userId, "tin:", userData.tin);
     alert("User information is missing. Please ensure you're logged in.");
     return;
   }
 
-  const fullFormData: ApplicationProps = {
-    ...formData,
+  // Build the payload
+  const payload: ApplicationProps = {
+    userId: userData.userId,
+    tin: userData.tin,
+    submissionDate: new Date().toISOString(),
+    applicationTypeId: Number(projectDetails.projectType) || 0,
+    status: "Under Review",
     projectName: projectDetails.projectName,
     projectDescription: projectDetails.projectDescription,
     projectDistrict: projectDetails.projectDistrict,
     projectPhysicalAddress: projectDetails.projectPhysicalAddress,
     reasonForApplying: projectDetails.reasonForApplying,
-    projectValue: parseFloat(projectDetails.projectValue),
+    projectValue: parseFloat(projectDetails.projectValue) || 0,
     currency: "MWK",
     startDate: projectDetails.startDate?.toISOString().split("T")[0] || "",
     endDate: projectDetails.endDate?.toISOString().split("T")[0] || "",
     attachments: attachments.map(att => ({
       type: att.type,
-      file: typeof att.file === "string" ? att.file : (att.file?.name || "")
+      file: typeof att.file === "string" ? att.file : att.file?.name || ""
     })),
     items: items.map(item => ({
       description: item.description,
@@ -247,33 +251,29 @@ const projectDetailsSchema = Yup.object().shape({
       quantity: item.quantity,
       value: item.value,
       currency: "MWK",
-      dutyAmount: 200,
-      uomId: 1
-    })),
-    submissionDate: new Date().toISOString(),
-    status: "Under Review", 
-    userId: userData.userId,
-    tin: userData.tin,
-    applicationTypeId: Number(projectDetails.projectType) || 0
+      dutyAmount: item.dutyAmount || 0,
+      uomId: Number(item.uomId) || 1,
+      uom: {
+        code: item.uom?.code || "PCS",
+        description: item.uom?.description || "Pieces"
+      }
+    }))
   };
 
-  console.log("Final form data being submitted (Submit):", fullFormData);
+  console.log("Final payload being submitted:", payload);
 
   try {
-    await createDraft(fullFormData); // if backend uses same endpoint
+    await createDraft(payload);
     router.push("/my-applications");
     alert("Application submitted successfully!");
   } catch (error: any) {
     console.error("Error submitting application:", error);
 
     if (error.response) {
-      console.error("Server responded with:", error.response.data);
       alert(`Submission failed: ${JSON.stringify(error.response.data)}`);
     } else if (error.request) {
-      console.error("No response received:", error.request);
       alert("No response received from server.");
     } else {
-      console.error("Unexpected error:", error.message);
       alert(`Unexpected error: ${error.message}`);
     }
   }
